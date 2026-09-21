@@ -41,7 +41,6 @@ export const LINEAS_VIAJE = [
 /* El mensaje final. Queda en pantalla para siempre.
  * Cada string es una línea; aparecen de a una. */
 export const MENSAJE_FINAL = [
-  `Para ${PERSONA.nombre}.`,
   'El amarillo es el color de lo que florece',
   'aunque nadie le haya dado permiso.',
   'Como vos.',

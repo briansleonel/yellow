@@ -13,7 +13,7 @@ export default function FinalMessage() {
         className="final__firma"
         style={{ animationDelay: `${MENSAJE_FINAL.length * 0.95 + 0.7}s` }}
       >
-        {PERSONA.firma}
+        Te quiero mucho, {PERSONA.nombre}
       </p>
     </div>
   )
