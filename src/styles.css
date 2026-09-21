@@ -1,0 +1,563 @@
+:root {
+  --espacio: #000005;
+  --tinta: #e8eeff;
+  --dorado: #ffd23f;
+  --dorado-claro: #fff3b0;
+  --serif: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  --sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  background: var(--espacio);
+  color: var(--tinta);
+  font-family: var(--serif);
+  overscroll-behavior: none;
+  touch-action: none; /* que el celular no haga scroll ni zoom durante el viaje */
+}
+
+canvas {
+  display: block;
+  touch-action: none;
+}
+
+/* El lienzo 3D vive al fondo; todo el texto va en capas DOM encima,
+   así se ve nítido (el texto dentro de WebGL siempre sale borroso). */
+.escena {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+}
+
+.capa {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  display: grid;
+  place-items: center;
+}
+
+/* ─── Portada ────────────────────────────────────────────────── */
+
+.intro {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2.4rem;
+  text-align: center;
+  padding: 2rem;
+  cursor: pointer;
+  animation: aparecer 2.6s ease both;
+}
+
+.intro__punto {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 14px 3px rgba(255, 255, 255, 0.75), 0 0 46px 12px rgba(160, 200, 255, 0.35);
+  animation: latir 3.6s ease-in-out infinite;
+}
+
+.intro__dedicatoria {
+  font-size: clamp(1.9rem, 6.5vw, 3.4rem);
+  font-weight: 300;
+  letter-spacing: 0.14em;
+  opacity: 0.94;
+}
+
+.intro__invitacion {
+  font-family: var(--sans);
+  font-size: 0.74rem;
+  font-weight: 300;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  opacity: 0.4;
+  animation: respirar 3.4s ease-in-out infinite;
+}
+
+/* ─── Las líneas del poema que pasan volando ─────────────────── */
+
+.linea {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(86vw, 40rem);
+  text-align: center;
+  font-size: clamp(1.25rem, 4.4vw, 2.25rem);
+  font-weight: 300;
+  font-style: italic;
+  line-height: 1.35;
+  text-shadow: 0 0 26px rgba(150, 190, 255, 0.4);
+  will-change: transform, opacity, filter;
+  /* `linear` a propósito: el ritmo lo marcan los porcentajes de abajo,
+     que dejan una meseta larga a tamaño casi fijo para poder leer. */
+  animation: pasar 7.5s linear both;
+}
+
+/* De los 7,5s, entre el 15% y el 74% (unos 4,4 segundos) el texto está
+   nítido, opaco y casi del mismo tamaño. Esa es la ventana de lectura.
+   El resto es la entrada y la salida. */
+@keyframes pasar {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.55);
+    filter: blur(6px);
+    letter-spacing: 0.26em;
+  }
+  15% {
+    opacity: 1;
+    filter: blur(0);
+    letter-spacing: 0.04em;
+  }
+  32% {
+    transform: translate(-50%, -50%) scale(1);
+    letter-spacing: 0.02em;
+  }
+  /* El blur y el interletrado se repiten acá a propósito. Si no se fijan
+     en este punto, el navegador los interpola derecho desde el 15% hasta
+     el 100% y el texto se va nublando durante toda la ventana de lectura. */
+  74% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.16);
+    filter: blur(0);
+    letter-spacing: 0.02em;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.85);
+    filter: blur(8px);
+    letter-spacing: 0;
+  }
+}
+
+/* ─── El destello al atravesar el anillo ─────────────────────── */
+
+.destello {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 50%, #fff 0%, #fff6de 45%, #ffe9b0 100%);
+  opacity: 0;
+  animation: destellar 2.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes destellar {
+  0% {
+    opacity: 0;
+  }
+  14% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ─── La llegada: el ramo ────────────────────────────────────── */
+
+.llegada {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(1.2rem, 4vh, 2.6rem);
+  padding: 2rem 1.25rem;
+  width: 100%;
+  max-width: 44rem;
+}
+
+.resplandor {
+  position: fixed;
+  left: 50%;
+  top: 46%;
+  width: min(150vw, 1100px);
+  height: min(150vw, 1100px);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  background: radial-gradient(
+    circle,
+    rgba(255, 214, 102, 0.3) 0%,
+    rgba(255, 180, 60, 0.13) 32%,
+    rgba(255, 150, 40, 0) 66%
+  );
+  opacity: 0;
+  animation: entrar-luz 5s ease 0.2s both, palpitar 8s ease-in-out 5s infinite;
+}
+
+@keyframes entrar-luz {
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes palpitar {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.07);
+    opacity: 0.82;
+  }
+}
+
+.ramo {
+  pointer-events: auto;
+  width: min(74vw, 30rem);
+  cursor: pointer;
+  filter: drop-shadow(0 0 34px rgba(255, 196, 70, 0.45));
+}
+
+/* ─── El mensaje final ───────────────────────────────────────── */
+
+.final {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.final__linea {
+  font-size: clamp(1.05rem, 3.6vw, 1.6rem);
+  font-weight: 300;
+  line-height: 1.55;
+  opacity: 0;
+  animation: subir 1.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.final__firma {
+  margin-top: 1.4rem;
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--dorado-claro);
+  opacity: 0;
+  animation: aparecer 2.4s ease both;
+}
+
+.coordenadas {
+  position: fixed;
+  bottom: max(1.4rem, env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--sans);
+  font-size: 0.6rem;
+  letter-spacing: 0.3em;
+  /* Son dos pares de coordenadas: en un celular angosto tiene que poder
+     partirse en dos renglones en vez de salirse de la pantalla. */
+  max-width: 92vw;
+  text-align: center;
+  line-height: 1.9;
+  opacity: 0;
+  animation: aparecer 3s ease 1.5s both;
+  color: rgba(232, 238, 255, 0.34);
+}
+
+/* ─── Controles discretos ────────────────────────────────────── */
+
+.controles {
+  position: fixed;
+  top: max(1rem, env(safe-area-inset-top));
+  right: 1rem;
+  z-index: 6;
+  display: flex;
+  gap: 0.4rem;
+  pointer-events: auto;
+}
+
+.boton {
+  background: none;
+  border: 1px solid rgba(232, 238, 255, 0.16);
+  border-radius: 999px;
+  color: rgba(232, 238, 255, 0.45);
+  font-family: var(--sans);
+  font-size: 0.6rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 0.42rem 0.8rem;
+  cursor: pointer;
+  transition: color 0.4s, border-color 0.4s;
+}
+
+.boton:hover {
+  color: rgba(232, 238, 255, 0.9);
+  border-color: rgba(232, 238, 255, 0.4);
+}
+
+/* ─── Animaciones compartidas ────────────────────────────────── */
+
+@keyframes aparecer {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes subir {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+    filter: blur(5px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
+}
+
+@keyframes latir {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.7);
+    opacity: 1;
+  }
+}
+
+@keyframes respirar {
+  0%,
+  100% {
+    opacity: 0.28;
+  }
+  50% {
+    opacity: 0.62;
+  }
+}
+
+/* ─── La constelación con su inicial ─────────────────────────── */
+
+.constelacion {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(30vw, 13rem);
+  margin-left: min(20vw, 12rem);
+  margin-top: -16vh;
+  overflow: visible;
+  animation: constelar 9s ease-in-out both;
+}
+
+@keyframes constelar {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.55);
+  }
+  22% {
+    opacity: 0.55;
+  }
+  68% {
+    opacity: 0.55;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.55);
+  }
+}
+
+/* La letra va tenue y detrás: es el fantasma que insinúa la forma.
+   Lo que se lee como constelación son los puntos y las líneas. */
+.constelacion__letra {
+  fill: none;
+  stroke: #cfe0ff;
+  stroke-width: 0.7;
+  opacity: 0.4;
+  font-family: var(--serif);
+  font-size: 96px;
+  font-weight: 300;
+  stroke-dasharray: 900;
+  filter: drop-shadow(0 0 5px rgba(180, 215, 255, 0.6));
+  animation: trazar 3.4s ease-out both;
+}
+
+.constelacion__lineas {
+  fill: none;
+  stroke: rgba(207, 224, 255, 0.5);
+  stroke-width: 0.6;
+  stroke-dasharray: 520;
+  animation: trazar-constelacion 4s ease-out 0.4s both;
+}
+
+@keyframes trazar-constelacion {
+  from {
+    stroke-dashoffset: 520;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes trazar {
+  from {
+    stroke-dashoffset: 900;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.constelacion__estrella {
+  fill: #fff;
+  animation: chispear 2.8s ease-in-out infinite;
+}
+
+@keyframes chispear {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* ─── El ramo ────────────────────────────────────────────────── */
+
+.ramo-envoltorio {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+/* Cuando entra el mensaje, el ramo cede lugar en vez de empujarlo
+   fuera de la pantalla. Esto es lo que salva el final en un celular. */
+.llegada--con-mensaje .ramo {
+  width: min(50vw, 18rem);
+}
+
+.ramo {
+  transition: width 1.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ramo__tallos path {
+  stroke-dasharray: 460;
+  stroke-dashoffset: 460;
+  animation: trazar-tallo 1.3s cubic-bezier(0.33, 1, 0.68, 1) both;
+}
+
+@keyframes trazar-tallo {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.ramo__hojas path {
+  opacity: 0;
+  animation: aparecer 1.2s ease both;
+}
+
+/* Dos animaciones encadenadas: primero se abre de golpe con un rebote,
+   después queda meciéndose para siempre. */
+.ramo__flor {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation:
+    florecer 1.5s cubic-bezier(0.34, 1.56, 0.64, 1) both,
+    mecerse 7s ease-in-out infinite;
+}
+
+@keyframes florecer {
+  from {
+    opacity: 0;
+    transform: scale(0) rotate(-50deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
+}
+
+@keyframes mecerse {
+  0%,
+  100% {
+    transform: rotate(-2.2deg) scale(1);
+  }
+  50% {
+    transform: rotate(2.2deg) scale(1.025);
+  }
+}
+
+/* ─── Pétalos que caen al tocar el ramo ──────────────────────── */
+
+.petalo-cae {
+  position: absolute;
+  top: 18%;
+  width: 13px;
+  height: 20px;
+  border-radius: 60% 60% 55% 55% / 75% 75% 40% 40%;
+  background: linear-gradient(160deg, #fff3b0, #ffc93c 55%, #e08900);
+  pointer-events: none;
+  will-change: transform, opacity;
+  animation: caer linear both;
+}
+
+@keyframes caer {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) rotate(0) scale(var(--escala));
+  }
+  12% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--deriva), 62vh) rotate(var(--giro)) scale(var(--escala));
+  }
+}
+
+@media (max-width: 480px) {
+  .linea {
+    width: 88vw;
+  }
+  .coordenadas {
+    font-size: 0.54rem;
+    letter-spacing: 0.22em;
+  }
+  .constelacion {
+    width: 26vw;
+    margin-left: 22vw;
+    margin-top: -20vh;
+  }
+}
+
+/* Si pidió menos movimiento en el sistema, bajamos el temblor del texto
+   pero no le arruinamos el regalo: el viaje sigue siendo el viaje. */
+@media (prefers-reduced-motion: reduce) {
+  .intro__punto,
+  .constelacion__estrella {
+    animation: none;
+  }
+  .ramo__flor {
+    animation: florecer 1.5s ease both;
+  }
+}
